@@ -1,0 +1,48 @@
+{
+    "name": "liberusoftware/ecommerce-promotions-filament",
+    "description": "The merchant's promotions panel: offer authoring, the status decision log, the revision archive, the redemption ledger and a basket evaluation that shows why an offer did not apply.",
+    "type": "liberu-module",
+    "license": "MIT",
+    "version": "0.1.0",
+    "keywords": ["laravel", "filament", "ecommerce", "promotions", "discounts"],
+    "require": {
+        "php": "^8.5",
+        "filament/filament": "^5.6",
+        "illuminate/database": "^13.0",
+        "illuminate/support": "^13.0",
+        "liberusoftware/ecommerce-promotions": "^0.1"
+    },
+    "require-dev": {
+        "liberusoftware/package-testbench": "^1.7",
+        "pestphp/pest": "^5.0"
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/liberusoftware/module-ecommerce-promotions"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Liberu\\Ecommerce\\Promotions\\Filament\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Liberu\\Ecommerce\\Promotions\\Filament\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "liberu": {
+            "name": "ecommerce-promotions-filament"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

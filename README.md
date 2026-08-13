@@ -1,84 +1,76 @@
-# Ecommerce: Promotions Filament
+# Promotions — Filament panel
 
-> This optional Filament 5 presentation package presents exactly one independent domain module. It contributes reusable resources, pages, widgets, schemas, tables, infolists, and actions to application-owned panels while delegating authorization, validation, tenancy, persistence, and business rules to the ecommerce-promotions public boundary. It mu
+[![Tests](https://github.com/liberusoftware/module-ecommerce-promotions-filament/actions/workflows/tests.yml/badge.svg)](https://github.com/liberusoftware/module-ecommerce-promotions-filament/actions/workflows/tests.yml)
 
-[Software](https://liberusoftware.com) ·
-[Hosting](https://liberuhosting.com) ·
-[Services](https://liberuservices.com) ·
-[Liberu Group](https://liberugroup.com)
+The merchant-facing panel over
+[`liberusoftware/ecommerce-promotions`](https://github.com/liberusoftware/module-ecommerce-promotions).
 
-![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?logo=php&logoColor=white) ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white) ![Filament](https://img.shields.io/badge/Filament-5-FDAE4B)
-[![Latest release](https://img.shields.io/github/v/release/liberusoftware/module-ecommerce-promotions-filament?sort=semver)](https://github.com/liberusoftware/module-ecommerce-promotions-filament/releases/latest) [![Tests](https://github.com/liberusoftware/module-ecommerce-promotions-filament/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/liberusoftware/module-ecommerce-promotions-filament/actions/workflows/tests.yml)
+It adds **no business rule of its own**. Every write goes through a domain action;
+every read comes from a domain query or a tenant-scoped Eloquent query. Nothing
+here recomputes a state, a supersession, an allocation or an aggregate the domain
+already publishes.
 
-## Features
-
-- Fully compatible with **Laravel 13**, **PHP 8.5**, and **Pest 5**.
-- Built following the domain-driven design guidelines of the Liberu architecture.
-- Reusable, presenting a clean public contract and boundaries.
-- Adheres to the strict database, security, and authorization standards of Liberu.
-
-## Requirements
-
-- **PHP 8.5**
-- **Composer 2**
-- A supported database (e.g. MySQL, PostgreSQL, SQLite)
-
-## Quick start
-
-To install this package via Composer, run:
-
-```bash
-composer require liberusoftware/module-ecommerce-promotions-filament
 ```
+composer require liberusoftware/ecommerce-promotions-filament
+```
+
+The domain package is not on Packagist. See [`docs/adoption.md`](docs/adoption.md)
+for the `repositories` entry your application must add.
+
+## What it gives a merchant
+
+| Surface | What it is |
+|---|---|
+| **Offers** | Authoring, with a form that expresses every term the domain accepts and refuses every one it rejects |
+| **Status decisions** | Who activated, paused, resumed or ended an offer, when, and why |
+| **Revisions** | What an offer's terms were at each revision, archived and read-only |
+| **Codes** | Ways of reaching an offer. Many per offer, or none |
+| **Evaluate a basket** | Every active offer applied — with its allocation — or **skipped by name, with its reason** |
+| **Redemptions** | The ledger, with its lines, its revision and its release, and giving a use back |
+| **Ledger integrity** | The two cached values, re-derived from the append-only tables behind them |
+
+## Attaching it
+
+Nothing registers globally. The panel decides:
+
+```php
+use Filament\Panel;
+use Liberu\Ecommerce\Promotions\Filament\PromotionsPlugin;
+
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->id('admin')
+        ->plugin(
+            PromotionsPlugin::make()
+                ->tenantUsing(fn (): string => (string) Filament::getTenant()?->getKey())
+                ->actorUsing(fn (): ?string => (string) Auth::id())
+        );
+}
+```
+
+`tenantUsing()` may be omitted on a panel with Filament tenancy — it falls back to
+`Filament::getTenant()`. It **throws** rather than defaulting when no tenant can be
+resolved: a panel that cannot say which merchant it is looking at would otherwise
+list every merchant's offers.
+
+## Four things this panel will not do
+
+- **Write a status column.** A status is a decision, with an actor, a time and a
+  closed-enum reason. `DecideOfferStatus` writes it and the log is read-only here.
+- **Edit or delete an append-only row.** Revisions, status decisions, redemptions
+  and releases are read in this panel and written only by the domain.
+- **Make a code searchable or filterable.** A search term and a filter state both
+  persist into the query string. A promo code is a bearer-ish value.
+- **Cache an entitlement.** The basket evaluation re-quotes on every render. An
+  entitlement is perishable: a basket that shrinks loses the one it had.
 
 ## Documentation
 
-- [Liberu Main Documentation](https://github.com/liberusoftware/documentation)
-- [Architecture & Standards Index](https://github.com/liberusoftware/documentation/tree/main/architecture)
+- [`docs/domain.md`](docs/domain.md) — what each surface is, and the decisions behind it
+- [`docs/adoption.md`](docs/adoption.md) — installing, attaching, and what the host must supply
+- [`docs/runbook.md`](docs/runbook.md) — the questions this panel is there to answer
 
-## Related Liberu Projects
+## Licence
 
-| Project | Repository | Purpose |
-| --- | --- | --- |
-| **Boilerplate** | [liberusoftware/boilerplate-laravel](https://github.com/liberusoftware/boilerplate-laravel) | Shared Laravel application foundation and reference composition |
-| **CMS** | [liberu-cms/cms-laravel](https://github.com/liberu-cms/cms-laravel) | Structured content, publishing, media, multisite, and headless delivery |
-| **CRM** | [liberu-crm/crm-laravel](https://github.com/liberu-crm/crm-laravel) | Customer data, sales, marketing, service, and customer success |
-| **Billing** | [liberu-billing/billing-laravel](https://github.com/liberu-billing/billing-laravel) | Products, subscriptions, invoicing, payments, and provisioning |
-| **Accounting** | [liberu-accounting/accounting-laravel](https://github.com/liberu-accounting/accounting-laravel) | Ledgers, banking, tax, expenses, close, and financial reporting |
-| **Ecommerce** | [liberu-ecommerce/ecommerce-laravel](https://github.com/liberu-ecommerce/ecommerce-laravel) | Catalog, checkout, orders, fulfillment, returns, B2B, and omnichannel commerce |
-| **Control Panel** | [liberu-control-panel/control-panel-laravel](https://github.com/liberu-control-panel/control-panel-laravel) | Hosting, infrastructure, DNS, mail, databases, backups, and security operations |
-| **Automation** | [liberu-automation/automation-laravel](https://github.com/liberu-automation/automation-laravel) | Governed workflows, provider-neutral AI, approvals, and connectors |
-
-## Security
-
-Please do not report security vulnerabilities through public GitHub issues.
-Follow our [Security Policy](https://github.com/liberusoftware/documentation/blob/main/architecture/SECURITY.md) for private reporting and supported versions.
-
-## License
-
-This project is open-source software. You may use, modify, and distribute it
-under the terms described in [LICENSE.md](LICENSE.md).
-
-The linked license text is authoritative; this summary is not legal advice.
-
-## Feedback and contributing
-
-Feedback and contributions are welcome. You can help by reporting reproducible
-bugs, proposing focused enhancements, improving documentation or translations,
-and submitting tested code changes.
-
-Before contributing, please read [CONTRIBUTING.md](https://github.com/liberusoftware/documentation/blob/main/standards/CONTRIBUTING.md) and our
-[Code of Conduct](https://github.com/liberusoftware/documentation/blob/main/architecture/CODE_OF_CONDUCT.md). Search existing issues first, then use
-the appropriate issue template. Pull requests should explain the problem and
-approach, remain focused, include or update tests, pass the required workflows,
-and document user-visible or breaking changes.
-
-## Contributors
-
-Thank you to everyone who helps improve Liberu.
-
-<a href="https://github.com/liberusoftware/module-ecommerce-promotions-filament/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=liberusoftware/module-ecommerce-promotions-filament" alt="Contributors to liberusoftware/module-ecommerce-promotions-filament">
-</a>
-
-[View the full contributors graph](https://github.com/liberusoftware/module-ecommerce-promotions-filament/graphs/contributors).
+MIT. See [LICENSE.md](LICENSE.md).
