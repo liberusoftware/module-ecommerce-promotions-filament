@@ -1,0 +1,30 @@
+{
+    "name": "ecommerce-promotions-filament",
+    "version": "0.1.0",
+    "description": "The merchant-facing Filament panel over the promotions domain: offer authoring, the append-only status decision log and revision archive, the redemption ledger with its releases, and a basket evaluation that names why an offer was skipped.",
+    "category": "presentation",
+    "provider": "Liberu\\Ecommerce\\Promotions\\Filament\\PromotionsFilamentServiceProvider",
+    "requires": {
+        "packages": {
+            "liberusoftware/ecommerce-promotions": "^0.1"
+        }
+    },
+    "presentation": {
+        "filament": {
+            "admin": [
+                "Liberu\\Ecommerce\\Promotions\\Filament\\PromotionsPlugin"
+            ]
+        }
+    },
+    "features": [
+        "Offer authoring that expresses every term the domain accepts and refuses every term it rejects",
+        "Status decided through the domain's decision action, never by editing a column",
+        "The append-only status decision log, showing who changed an offer and when",
+        "The append-only revision archive, showing what an offer's terms were at each revision",
+        "Codes issued per offer, never searchable and never filterable",
+        "The redemption ledger with its releases, and releasing a use back with a closed-enum reason",
+        "Basket evaluation that names every skipped offer with its refusal reason",
+        "A ledger integrity widget that recomputes the cached counter and status from the append-only tables",
+        "Every unpublished ability forced false by name, per resource and per relation manager"
+    ]
+}
