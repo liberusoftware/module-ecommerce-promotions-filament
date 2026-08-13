@@ -3,14 +3,18 @@
 declare(strict_types=1);
 
 use Filament\Actions\Testing\TestAction;
+use Illuminate\Support\Facades\App;
+use Liberu\Ecommerce\Promotions\Actions\ReviseOfferTerms;
 use Liberu\Ecommerce\Promotions\Contracts\ResolvesCustomerEligibility;
 use Liberu\Ecommerce\Promotions\Data\Money;
+use Liberu\Ecommerce\Promotions\Data\OfferTerms;
 use Liberu\Ecommerce\Promotions\Enums\OfferTarget;
 use Liberu\Ecommerce\Promotions\Enums\OfferType;
 use Liberu\Ecommerce\Promotions\Enums\RefusalReason;
 use Liberu\Ecommerce\Promotions\Enums\StackingMode;
 use Liberu\Ecommerce\Promotions\Filament\Resources\Offers\Pages\EvaluateBasket;
 use Liberu\Ecommerce\Promotions\Filament\Support\Refusals;
+use Liberu\Ecommerce\Promotions\Filament\Tests\TestCase;
 use Liberu\Ecommerce\Promotions\Models\Offer;
 use Liberu\Ecommerce\Promotions\Models\Redemption;
 use Livewire\Livewire;
@@ -38,6 +42,11 @@ function evaluateWith(array $input)
 {
     return Livewire::test(EvaluateBasket::class)
         ->callAction(TestAction::make('describeBasket'), $input);
+}
+
+function reduction($component): ?string
+{
+    return $component->instance()->getTable()->getRecords()->first()['reduction'];
 }
 
 it('shows nothing until a basket is described, and writes nothing when it does', function () {
@@ -180,19 +189,44 @@ it('unwires the three things a custom-data table breaks on', function () {
 });
 
 it('re-quotes on every render rather than holding an entitlement', function () {
-    activate(makeOffer(['name' => 'Twenty off']));
+    $offer = activate(makeOffer(['name' => 'Twenty off']));
 
     $component = evaluateWith(basket());
 
-    expect($component->instance()->getTable()->getRecords()->first()['reduction'])->toBe('5.00');
+    expect(reduction($component))->toBe('5.00');
 
-    // A basket that shrinks loses the entitlement it had. Nothing is cached, so
-    // the same component re-quotes against the smaller basket.
-    $component->callAction(TestAction::make('describeBasket'), basket([
+    // The rule changes underneath the page. Nothing is stored, held or reserved,
+    // so the same page re-quotes and reports the new number rather than the one
+    // it showed a moment ago — the host's session copy of an applied discount is
+    // the fault this absence removes.
+    App::make(ReviseOfferTerms::class)(
+        TestCase::TENANT,
+        $offer->id,
+        new OfferTerms(
+            name: 'Ten off',
+            type: OfferType::Percentage,
+            target: OfferTarget::Order,
+            stacking: StackingMode::Stackable,
+            valueBasisPoints: 1000,
+        ),
+        'staff-1',
+    );
+
+    $component->call('$refresh');
+
+    expect(reduction($component))->toBe('2.50');
+});
+
+it('loses the entitlement a basket had when the basket shrinks', function () {
+    activate(makeOffer(['name' => 'Twenty off']));
+
+    // Described from scratch rather than by re-opening the modal: Filament 5.6.5,
+    // which `--prefer-lowest` resolves, merges action data into the schema
+    // instead of replacing it, so a smaller line list would arrive as a longer
+    // one. The perishability is the claim; the modal's merge behaviour is not.
+    expect(reduction(evaluateWith(basket([
         'lines' => [['product_ref' => 'sku-1', 'quantity' => 1, 'unit_amount' => '1.00']],
-    ]));
-
-    expect($component->instance()->getTable()->getRecords()->first()['reduction'])->toBe('0.20');
+    ]))))->toBe('0.20');
 });
 
 it('renders every refusal reason the domain publishes', function (RefusalReason $reason) {
